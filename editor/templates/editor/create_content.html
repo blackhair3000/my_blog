@@ -1,0 +1,91 @@
+{% extends 'base_layout.html' %}
+
+{% block content %}
+
+    <h1>Your content</h1>
+    <div id="editorjs"></div>
+    <button id="save-button">Save</button>
+    <pre id="output"></pre>
+    <script src="/static/slugify.js"></script>
+    <script src="/static/editor.js"></script>
+    <script src="/static/header.js"></script>
+    <script src="/static/list.js"></script>
+    <script src="/static/image.js"></script>
+    <script src="/static/jquery-3.4.1.min.js"></script>
+    <script src="/static/paragraph.js"></script>
+
+    <script>
+
+        const editor = new EditorJS({
+            /**
+             * Id of Element that should contain the Editor
+             */
+            autofocus: true,
+            holder: 'editorjs',
+            tools: {
+                header: {
+                    class: Header,
+                    inlineToolbar: true
+                },
+                list: {
+                    class: List,
+                    inlineToolbar: true,
+                    shortcut: 'CMD+SHIFT+L'
+                },
+                image: {
+                    class: ImageTool,
+                    config: {
+                        endpoints: {
+                            byFile: "{% url 'editor:upload_image' %}",
+                        },
+                        additionalRequestHeaders: {"X-CSRFToken": '{{ csrf_token }}'},
+                        additionalRequestData: {},
+                        field: "image",
+
+                    }
+                }
+
+            },
+        });
+
+        const saveButton = document.getElementById('save-button');
+        const output = document.getElementById('output');
+
+
+        saveButton.addEventListener('click', () => {
+            editor.save().then(savedData => {
+                output.innerHTML = JSON.stringify(savedData, null, 4);
+
+                console.log('Article data: ', savedData)
+
+                $.ajax({
+                    headers: {"X-CSRFToken": '{{ csrf_token }}'},
+                    type: 'POST',       // define the type of HTTP verb we want to use (POST for our form)
+                    url: "/editor/create/content/",
+                    encode: true,
+                    contentType: 'application/x-www-form-urlencoded',
+                    crossDomain: false,
+                    dataType: 'json',
+                    data: JSON.stringify(savedData, null, 4),     // our data object
+                    success: function (data) {
+                        {#                location.reload();#}
+
+                        console.log('successful')
+
+                        window.location="/editor/content/detail/"+data.src_id+"/"
+
+                    },
+                    error: function (exception) {
+                        alert('create error');
+                    }
+                });
+
+
+            })
+        })
+
+
+    </script>
+
+
+{% endblock %}
